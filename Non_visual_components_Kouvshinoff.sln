@@ -5,6 +5,8 @@ VisualStudioVersion = 17.8.34309.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Non_visual_components_Kouvshinoff", "Non_visual_components_Kouvshinoff\Non_visual_components_Kouvshinoff.csproj", "{AFC3F5AA-B25F-496B-8E37-52DE5DF8A24C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "test", "test\test.csproj", "{6D821E54-0557-46A5-A4EC-75A851C2FD67}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{AFC3F5AA-B25F-496B-8E37-52DE5DF8A24C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AFC3F5AA-B25F-496B-8E37-52DE5DF8A24C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AFC3F5AA-B25F-496B-8E37-52DE5DF8A24C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D821E54-0557-46A5-A4EC-75A851C2FD67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D821E54-0557-46A5-A4EC-75A851C2FD67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D821E54-0557-46A5-A4EC-75A851C2FD67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D821E54-0557-46A5-A4EC-75A851C2FD67}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
