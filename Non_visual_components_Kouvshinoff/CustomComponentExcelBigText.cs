@@ -1,4 +1,5 @@
 ﻿using Non_visual_components_Kouvshinoff.Enums;
+using Non_visual_components_Kouvshinoff.HelpingModels;
 using System.ComponentModel;
 
 namespace Non_visual_components_Kouvshinoff
@@ -36,10 +37,10 @@ namespace Non_visual_components_Kouvshinoff
             ExcelTable table = new ExcelTable();
             table.CreateExcel(fileName);
 
-            table.InsertCellInWorksheet(1, "A", title, ExcelStyleInfoType.Title);
+            table.InsertCellInWorksheet(new CellCoords { RowIndex = 1U, ColumnName = "A" }, title, ExcelStyleInfoType.Title);
             for (int i = 0; i < lines.Length; i++)
             {
-                table.InsertCellInWorksheet((uint)i + 3U, "A", lines[i], ExcelStyleInfoType.Text);
+                table.InsertCellInWorksheet(new CellCoords { RowIndex = (uint)i + 3U, ColumnName = "A" }, lines[i], ExcelStyleInfoType.Text);
             }
 
             table.SaveExcel();

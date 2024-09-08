@@ -165,7 +165,7 @@ namespace Non_visual_components_Kouvshinoff
         }
         internal void MergeCells(CellCoords startCell, CellCoords endCell)
         {
-            string merge = $"{startCell}:{endCell}";
+            string merge = $"{startCell.CellReference}:{endCell.CellReference}";
             if (_worksheet == null)
             {
                 return;
@@ -226,9 +226,8 @@ namespace Non_visual_components_Kouvshinoff
             sheets.Append(sheet);
             _worksheet = worksheetPart.Worksheet;
         }
-        internal void InsertCellInWorksheet(uint rowIndex, string columnName, string text, ExcelStyleInfoType cellType)
+        internal void InsertCellInWorksheet(CellCoords cellCoords, string text, ExcelStyleInfoType cellType)
         {
-            string cellReference = $"{columnName}{rowIndex}";
             if (_worksheet == null || _shareStringPart == null)
             {
                 return;
@@ -240,20 +239,20 @@ namespace Non_visual_components_Kouvshinoff
             }
             // Ищем строку, либо добавляем ее
             Row row;
-            if (sheetData.Elements<Row>().Where(r => r.RowIndex! == rowIndex).Any())
+            if (sheetData.Elements<Row>().Where(r => r.RowIndex! == cellCoords.RowIndex).Any())
             {
-                row = sheetData.Elements<Row>().Where(r => r.RowIndex! == rowIndex).First();
+                row = sheetData.Elements<Row>().Where(r => r.RowIndex! == cellCoords.RowIndex).First();
             }
             else
             {
-                row = new Row() { RowIndex = rowIndex };
+                row = new Row() { RowIndex = cellCoords.RowIndex };
                 sheetData.Append(row);
             }
             // Ищем нужную ячейку
             Cell cell;
-            if (row.Elements<Cell>().Where(c => c.CellReference!.Value == cellReference).Any())
+            if (row.Elements<Cell>().Where(c => c.CellReference!.Value == cellCoords.CellReference).Any())
             {
-                cell = row.Elements<Cell>().Where(c => c.CellReference!.Value == cellReference).First();
+                cell = row.Elements<Cell>().Where(c => c.CellReference!.Value == cellCoords.CellReference).First();
             }
             else
             {
@@ -262,7 +261,7 @@ namespace Non_visual_components_Kouvshinoff
                 Cell? refCell = null;
                 foreach (Cell rowCell in row.Elements<Cell>())
                 {
-                    if (string.Compare(rowCell.CellReference!.Value, cellReference, true) > 0)
+                    if (string.Compare(rowCell.CellReference!.Value, cellCoords.CellReference, true) > 0)
                     {
                         refCell = rowCell;
                         break;
@@ -270,7 +269,7 @@ namespace Non_visual_components_Kouvshinoff
                 }
                 var newCell = new Cell()
                 {
-                    CellReference = cellReference
+                    CellReference = cellCoords.CellReference
                 };
                 row.InsertBefore(newCell, refCell);
                 cell = newCell;
