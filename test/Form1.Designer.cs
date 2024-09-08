@@ -53,6 +53,7 @@
             button2.TabIndex = 1;
             button2.Text = "нажми меня";
             button2.UseVisualStyleBackColor = true;
+            button2.Click += button2_Click;
             // 
             // button3
             // 
@@ -62,12 +63,13 @@
             button3.TabIndex = 2;
             button3.Text = "нажми меня";
             button3.UseVisualStyleBackColor = true;
+            button3.Click += button3_Click;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 450);
+            ClientSize = new Size(800, 110);
             Controls.Add(button3);
             Controls.Add(button2);
             Controls.Add(button1);
