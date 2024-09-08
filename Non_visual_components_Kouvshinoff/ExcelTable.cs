@@ -94,6 +94,12 @@ namespace Non_visual_components_Kouvshinoff
                 FillId = 0U,
                 BorderId = 1U,
                 FormatId = 0U,
+                Alignment = new Alignment()
+                {
+                    Vertical = VerticalAlignmentValues.Center,
+                    WrapText = true,
+                    Horizontal = HorizontalAlignmentValues.Center
+                },
                 ApplyFont = true,
                 ApplyBorder = true
             };
@@ -280,6 +286,52 @@ namespace Non_visual_components_Kouvshinoff
             cell.CellValue = new CellValue((_shareStringPart.SharedStringTable.Elements<SharedStringItem>().Count() - 1).ToString());
             cell.DataType = new EnumValue<CellValues>(CellValues.SharedString);
             cell.StyleIndex = GetStyleValue(cellType);
+        }
+
+        internal void SetColumnWidth(uint columnIndex, double width)
+        {
+            if (_worksheet == null)
+            {
+                return;
+            }
+
+            Columns? columns;
+
+            // Проверяем, есть ли уже секция Columns, если нет, создаем новую
+            if (_worksheet.Elements<Columns>().Any())
+            {
+                columns = _worksheet.Elements<Columns>().First();
+            }
+            else
+            {
+                columns = new Columns();
+                // Вставляем Columns перед SheetData
+                _worksheet.InsertAt(columns, 0);
+            }
+
+            // Проверяем, существует ли уже колонка с заданным индексом
+            Column? existingColumn = columns.Elements<Column>().FirstOrDefault(c => c.Min == columnIndex && c.Max == columnIndex);
+
+            if (existingColumn != null)
+            {
+                // Если колонка уже есть, обновляем её ширину
+                existingColumn.Width = width;
+                existingColumn.CustomWidth = true;
+            }
+            else
+            {
+                // Если колонки нет, добавляем её с новой шириной
+                Column column = new Column()
+                {
+                    Min = columnIndex,
+                    Max = columnIndex,
+                    Width = width,
+                    CustomWidth = true
+                };
+                columns.Append(column);
+            }
+
+            _worksheet.Save();
         }
 
         internal void SaveExcel()

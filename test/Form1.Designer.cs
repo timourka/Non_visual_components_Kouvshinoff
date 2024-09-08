@@ -33,6 +33,8 @@
             button1 = new Button();
             button2 = new Button();
             button3 = new Button();
+            customComponentExcelTableWithHeader = new Non_visual_components_Kouvshinoff.CustomComponentExcelTableWithHeader(components);
+            customComponentExcelLineDiagram = new Non_visual_components_Kouvshinoff.CustomComponentExcelLineDiagram(components);
             SuspendLayout();
             // 
             // button1
@@ -84,5 +86,7 @@
         private Button button1;
         private Button button2;
         private Button button3;
+        private Non_visual_components_Kouvshinoff.CustomComponentExcelTableWithHeader customComponentExcelTableWithHeader;
+        private Non_visual_components_Kouvshinoff.CustomComponentExcelLineDiagram customComponentExcelLineDiagram;
     }
 }
