@@ -1,4 +1,4 @@
-﻿using Non_visual_components_Kouvshinoff.Enums;
+﻿using Non_visual_components_Kouvshinoff.HelpingEnums;
 using Non_visual_components_Kouvshinoff.HelpingModels;
 using System.ComponentModel;
 
@@ -43,7 +43,6 @@ namespace Non_visual_components_Kouvshinoff
                 table.InsertCellInWorksheet(new CellCoords { RowIndex = (uint)i + 3U, ColumnName = "A" }, lines[i], ExcelStyleInfoType.Text);
             }
 
-            table.SaveExcel();
         }
     }
 }

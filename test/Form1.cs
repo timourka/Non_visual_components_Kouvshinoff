@@ -1,5 +1,6 @@
-using Microsoft.VisualBasic;
+using Non_visual_components_Kouvshinoff.Enums;
 using Non_visual_components_Kouvshinoff.InfoModels;
+using Range = Non_visual_components_Kouvshinoff.InfoModels.Range;
 
 namespace test
 {
@@ -71,7 +72,35 @@ namespace test
 
         private void button3_Click(object sender, EventArgs e)
         {
+            List<string> header = new List<string> { "a", "b", "c", "d" };
+            List<Range> ranges = new List<Range>{
+                new("aboba", new Dictionary<string, int> { 
+                    { "a", 11 },
+                    { "b", 22 },
+                    { "c", 33 },
+                    { "d", 44 }
+                    }),
+                new("babab", new Dictionary<string, int> {
+                    { "a", 44 },
+                    { "b", 33 },
+                    { "c", 1 },
+                    { "d", 11 }
+                    }),
+            };
 
+            using var dialog = new SaveFileDialog { Filter = "xlsx|*.xlsx" };
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    customComponentExcelLineDiagram.createExcel(dialog.FileName, "sadf", "adsfa", DiagramLegendLocation.Left, header, ranges);
+                    MessageBox.Show("Выполнено", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
     }
 }

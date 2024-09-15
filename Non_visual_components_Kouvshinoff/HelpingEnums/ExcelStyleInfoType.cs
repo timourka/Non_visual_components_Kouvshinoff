@@ -1,4 +1,4 @@
-﻿namespace Non_visual_components_Kouvshinoff.Enums
+﻿namespace Non_visual_components_Kouvshinoff.HelpingEnums
 {
     internal enum ExcelStyleInfoType
     {

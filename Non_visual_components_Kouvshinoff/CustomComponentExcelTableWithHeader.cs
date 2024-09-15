@@ -1,8 +1,7 @@
-﻿using Non_visual_components_Kouvshinoff.Enums;
+﻿using Non_visual_components_Kouvshinoff.HelpingEnums;
 using Non_visual_components_Kouvshinoff.HelpingModels;
 using Non_visual_components_Kouvshinoff.InfoModels;
 using System.ComponentModel;
-using System.Numerics;
 using System.Reflection;
 
 namespace Non_visual_components_Kouvshinoff
@@ -18,19 +17,6 @@ namespace Non_visual_components_Kouvshinoff
         {
             container.Add(this);
             InitializeComponent();
-        }
-
-        private static string ColumnIndexToLetter(int columnIndex)
-        {
-            columnIndex++;
-            string columnLetter = string.Empty;
-            while (columnIndex > 0)
-            {
-                int remainder = (columnIndex - 1) % 26;
-                columnLetter = (char)(remainder + 'A') + columnLetter;
-                columnIndex = (columnIndex - 1) / 26;
-            }
-            return columnLetter;
         }
 
         List<List<Tuple<ColumnInfo, int>>> header;
@@ -85,11 +71,11 @@ namespace Non_visual_components_Kouvshinoff
                 {
                     var cell = row[i];
 
-                    CellCoords leftTop = new CellCoords { RowIndex = (uint)tableRow, ColumnName = ColumnIndexToLetter(cell.Item2) };
-                    CellCoords rightBotom = new CellCoords { RowIndex = (uint)(headerHeight - cell.Item1.deep) + 1U, ColumnName = ColumnIndexToLetter(cell.Item2 + cell.Item1.width - 1) };
+                    CellCoords leftTop = new CellCoords { RowIndex = (uint)tableRow, ColumnName = HelpingFunctions.ColumnIndexToLetter(cell.Item2) };
+                    CellCoords rightBotom = new CellCoords { RowIndex = (uint)(headerHeight - cell.Item1.deep) + 1U, ColumnName = HelpingFunctions.ColumnIndexToLetter(cell.Item2 + cell.Item1.width - 1) };
                     for (int x = cell.Item2; x <= cell.Item2 + cell.Item1.width - 1; x++)
                         for (int y = tableRow; y <= headerHeight - cell.Item1.deep + 1; y++)
-                            table.InsertCellInWorksheet(new CellCoords { RowIndex = (uint)y, ColumnName = ColumnIndexToLetter(x) }, cell.Item1.ColumnName, ExcelStyleInfoType.TextWithBorder);
+                            table.InsertCellInWorksheet(new CellCoords { RowIndex = (uint)y, ColumnName = HelpingFunctions.ColumnIndexToLetter(x) }, cell.Item1.ColumnName, ExcelStyleInfoType.TextWithBorder);
                     if (leftTop.RowIndex != rightBotom.RowIndex || leftTop.ColumnName != rightBotom.ColumnName)
                         table.MergeCells(leftTop, rightBotom);
                 }
@@ -107,7 +93,7 @@ namespace Non_visual_components_Kouvshinoff
                     FieldInfo? fieldInfo = typeof(T).GetField(col.FieldName!);
                     if (fieldInfo == null)
                         throw new NullReferenceException(col.FieldName!);
-                    table.InsertCellInWorksheet(new CellCoords { RowIndex = (uint)tableRow, ColumnName = ColumnIndexToLetter(i) }, fieldInfo.GetValue(line).ToString(), ExcelStyleInfoType.TextWithBorder);
+                    table.InsertCellInWorksheet(new CellCoords { RowIndex = (uint)tableRow, ColumnName = HelpingFunctions.ColumnIndexToLetter(i) }, fieldInfo.GetValue(line).ToString(), ExcelStyleInfoType.TextWithBorder);
                 }
                 tableRow++;
             }

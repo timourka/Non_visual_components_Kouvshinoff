@@ -1,10 +1,28 @@
 ﻿using DocumentFormat.OpenXml.Office2010.Excel;
 using DocumentFormat.OpenXml.Office2013.Excel;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
-using DocumentFormat.OpenXml;
+
 using Non_visual_components_Kouvshinoff.Enums;
 using Non_visual_components_Kouvshinoff.HelpingModels;
+using Non_visual_components_Kouvshinoff.HelpingEnums;
+
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml.Drawing.Spreadsheet;
+
+using TextProperties = DocumentFormat.OpenXml.Drawing.Charts.TextProperties;
+using Index = DocumentFormat.OpenXml.Drawing.Charts.Index;
+using Orientation = DocumentFormat.OpenXml.Drawing.Charts.Orientation;
+using DisplayBlanksAsValues = DocumentFormat.OpenXml.Drawing.Charts.DisplayBlanksAsValues;
+
+using Run = DocumentFormat.OpenXml.Drawing.Run;
+using ParagraphProperties = DocumentFormat.OpenXml.Drawing.ParagraphProperties;
+using DefaultRunProperties = DocumentFormat.OpenXml.Drawing.DefaultRunProperties;
+using Paragraph = DocumentFormat.OpenXml.Drawing.Paragraph;
+using BodyProperties = DocumentFormat.OpenXml.Drawing.BodyProperties;
+using ListStyle = DocumentFormat.OpenXml.Drawing.ListStyle;
+using EndParagraphRunProperties = DocumentFormat.OpenXml.Drawing.EndParagraphRunProperties;
 
 namespace Non_visual_components_Kouvshinoff
 {
@@ -154,52 +172,6 @@ namespace Non_visual_components_Kouvshinoff
             sp.Stylesheet.Append(tableStyles);
             sp.Stylesheet.Append(stylesheetExtensionList);
         }
-        /// <summary>
-        /// Получение номера стиля из типа
-        /// </summary>
-        /// <param name="styleInfo"></param>
-        /// <returns></returns>
-        private static uint GetStyleValue(ExcelStyleInfoType styleInfo)
-        {
-            return styleInfo switch
-            {
-                ExcelStyleInfoType.Title => 2U,
-                ExcelStyleInfoType.TextWithBorder => 1U,
-                ExcelStyleInfoType.Text => 0U,
-                _ => 0U,
-            };
-        }
-        internal void MergeCells(CellCoords startCell, CellCoords endCell)
-        {
-            string merge = $"{startCell.CellReference}:{endCell.CellReference}";
-            if (_worksheet == null)
-            {
-                return;
-            }
-            MergeCells mergeCells;
-            if (_worksheet.Elements<MergeCells>().Any())
-            {
-                mergeCells = _worksheet.Elements<MergeCells>().First();
-            }
-            else
-            {
-                mergeCells = new MergeCells();
-                if (_worksheet.Elements<CustomSheetView>().Any())
-                {
-                    _worksheet.InsertAfter(mergeCells, _worksheet.Elements<CustomSheetView>().First());
-                }
-                else
-                {
-                    _worksheet.InsertAfter(mergeCells, _worksheet.Elements<SheetData>().First());
-                }
-            }
-            var mergeCell = new MergeCell()
-            {
-                Reference = new StringValue(merge)
-            };
-            mergeCells.Append(mergeCell);
-        }
-
         internal void CreateExcel(string fileName)
         {
             _spreadsheetDocument = SpreadsheetDocument.Create(fileName, SpreadsheetDocumentType.Workbook); ///
@@ -232,6 +204,21 @@ namespace Non_visual_components_Kouvshinoff
             sheets.Append(sheet);
             _worksheet = worksheetPart.Worksheet;
         }
+        /// <summary>
+        /// Получение номера стиля из типа
+        /// </summary>
+        /// <param name="styleInfo"></param>
+        /// <returns></returns>
+        private static uint GetStyleValue(ExcelStyleInfoType styleInfo)
+        {
+            return styleInfo switch
+            {
+                ExcelStyleInfoType.Title => 2U,
+                ExcelStyleInfoType.TextWithBorder => 1U,
+                ExcelStyleInfoType.Text => 0U,
+                _ => 0U,
+            };
+        }
         internal void InsertCellInWorksheet(CellCoords cellCoords, string text, ExcelStyleInfoType cellType)
         {
             if (_worksheet == null || _shareStringPart == null)
@@ -243,22 +230,24 @@ namespace Non_visual_components_Kouvshinoff
             {
                 return;
             }
+
             // Ищем строку, либо добавляем ее
             Row row;
-            if (sheetData.Elements<Row>().Where(r => r.RowIndex! == cellCoords.RowIndex).Any())
+            if (sheetData.Elements<Row>().Where(r => r.RowIndex == cellCoords.RowIndex).Any())
             {
-                row = sheetData.Elements<Row>().Where(r => r.RowIndex! == cellCoords.RowIndex).First();
+                row = sheetData.Elements<Row>().Where(r => r.RowIndex == cellCoords.RowIndex).First();
             }
             else
             {
                 row = new Row() { RowIndex = cellCoords.RowIndex };
                 sheetData.Append(row);
             }
+
             // Ищем нужную ячейку
             Cell cell;
-            if (row.Elements<Cell>().Where(c => c.CellReference!.Value == cellCoords.CellReference).Any())
+            if (row.Elements<Cell>().Where(c => c.CellReference == cellCoords.CellReference).Any())
             {
-                cell = row.Elements<Cell>().Where(c => c.CellReference!.Value == cellCoords.CellReference).First();
+                cell = row.Elements<Cell>().Where(c => c.CellReference == cellCoords.CellReference).First();
             }
             else
             {
@@ -267,7 +256,7 @@ namespace Non_visual_components_Kouvshinoff
                 Cell? refCell = null;
                 foreach (Cell rowCell in row.Elements<Cell>())
                 {
-                    if (string.Compare(rowCell.CellReference!.Value, cellCoords.CellReference, true) > 0)
+                    if (string.Compare(rowCell.CellReference, cellCoords.CellReference, true) > 0)
                     {
                         refCell = rowCell;
                         break;
@@ -280,14 +269,57 @@ namespace Non_visual_components_Kouvshinoff
                 row.InsertBefore(newCell, refCell);
                 cell = newCell;
             }
-            // вставляем новый текст
-            _shareStringPart.SharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
-            _shareStringPart.SharedStringTable.Save();
-            cell.CellValue = new CellValue((_shareStringPart.SharedStringTable.Elements<SharedStringItem>().Count() - 1).ToString());
-            cell.DataType = new EnumValue<CellValues>(CellValues.SharedString);
+
+            // Проверяем, является ли значение числом
+            if (double.TryParse(text, out double numericValue))
+            {
+                // Если это число, добавляем его как число
+                cell.CellValue = new CellValue(numericValue.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                cell.DataType = new EnumValue<CellValues>(CellValues.Number);
+            }
+            else
+            {
+                // Если это текст, добавляем как shared string
+                _shareStringPart.SharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+                _shareStringPart.SharedStringTable.Save();
+                cell.CellValue = new CellValue((_shareStringPart.SharedStringTable.Elements<SharedStringItem>().Count() - 1).ToString());
+                cell.DataType = new EnumValue<CellValues>(CellValues.SharedString);
+            }
+
+            // Устанавливаем стиль ячейки
             cell.StyleIndex = GetStyleValue(cellType);
         }
 
+        internal void MergeCells(CellCoords startCell, CellCoords endCell)
+        {
+            string merge = $"{startCell.CellReference}:{endCell.CellReference}";
+            if (_worksheet == null)
+            {
+                return;
+            }
+            MergeCells mergeCells;
+            if (_worksheet.Elements<MergeCells>().Any())
+            {
+                mergeCells = _worksheet.Elements<MergeCells>().First();
+            }
+            else
+            {
+                mergeCells = new MergeCells();
+                if (_worksheet.Elements<CustomSheetView>().Any())
+                {
+                    _worksheet.InsertAfter(mergeCells, _worksheet.Elements<CustomSheetView>().First());
+                }
+                else
+                {
+                    _worksheet.InsertAfter(mergeCells, _worksheet.Elements<SheetData>().First());
+                }
+            }
+            var mergeCell = new MergeCell()
+            {
+                Reference = new StringValue(merge)
+            };
+            mergeCells.Append(mergeCell);
+        }
         internal void SetColumnWidth(uint columnIndex, double width)
         {
             if (_worksheet == null)
@@ -332,6 +364,316 @@ namespace Non_visual_components_Kouvshinoff
             }
 
             _worksheet.Save();
+        }
+
+        private static Title GenerateTitle(string titleText)
+        {
+            Run run = new Run();
+            run.Append(new OpenXmlElement[]
+            {
+                new DocumentFormat.OpenXml.Drawing.RunProperties
+                {
+                    FontSize = 1100
+                }
+            });
+            run.Append(new OpenXmlElement[]
+            {
+                new DocumentFormat.OpenXml.Drawing.Text(titleText)
+            });
+            ParagraphProperties paragraphProperties = new ParagraphProperties();
+            paragraphProperties.Append(new OpenXmlElement[]
+            {
+                new DefaultRunProperties
+                {
+                    FontSize = 1100
+                }
+            });
+            Paragraph paragraph = new Paragraph();
+            paragraph.Append(new OpenXmlElement[] { paragraphProperties });
+            paragraph.Append(new OpenXmlElement[] { run });
+            RichText richText = new RichText();
+            richText.Append(new OpenXmlElement[]
+            {
+                new BodyProperties()
+            });
+            richText.Append(new OpenXmlElement[]
+            {
+                new ListStyle()
+            });
+            richText.Append(new OpenXmlElement[] { paragraph });
+            ChartText chartText = new ChartText();
+            chartText.Append(new OpenXmlElement[] { richText });
+            Title title = new Title();
+            title.Append(new OpenXmlElement[] { chartText });
+            title.Append(new OpenXmlElement[]
+            {
+                new Layout()
+            });
+            title.Append(new OpenXmlElement[]
+            {
+                new Overlay
+                {
+                    Val = false
+                }
+            });
+            return title;
+        }
+        private static Legend GenerateLegend(LegendPositionValues position)
+        {
+            ParagraphProperties paragraphProperties = new ParagraphProperties();
+            paragraphProperties.Append(new OpenXmlElement[]
+            {
+                new DefaultRunProperties()
+            });
+            Paragraph paragraph = new Paragraph();
+            paragraph.Append(new OpenXmlElement[] { paragraphProperties });
+            paragraph.Append(new OpenXmlElement[]
+            {
+                new EndParagraphRunProperties()
+            });
+            TextProperties textProperties = new TextProperties();
+            textProperties.Append(new OpenXmlElement[]
+            {
+                new BodyProperties()
+            });
+            textProperties.Append(new OpenXmlElement[]
+            {
+                new ListStyle()
+            });
+            textProperties.Append(new OpenXmlElement[] { paragraph });
+            Legend legend = new Legend();
+            legend.Append(new OpenXmlElement[]
+            {
+                new LegendPosition
+                {
+                    Val = position
+                }
+            });
+            legend.Append(new OpenXmlElement[]
+            {
+                new Layout()
+            });
+            legend.Append(new OpenXmlElement[]
+            {
+                new Overlay
+                {
+                    Val = false
+                }
+            });
+            legend.Append(new OpenXmlElement[] { textProperties });
+            return legend;
+        }
+        internal void AddChart(string chartTitle, DiagramLegendLocation diagramLegendLocation, List<string> header, List<InfoModels.Range> ranges)
+        {
+            WorksheetPart worksheetPart = _worksheet.WorksheetPart;
+
+            // Добавляем DrawingsPart и диаграмму
+            DrawingsPart drawingsPart = worksheetPart.AddNewPart<DrawingsPart>();
+            worksheetPart.Worksheet.Append(new Drawing() { Id = worksheetPart.GetIdOfPart(drawingsPart) });
+            worksheetPart.Worksheet.Save();
+
+            drawingsPart.WorksheetDrawing = new WorksheetDrawing();
+
+            // Создаем диаграмму и задаем язык диаграммы
+            ChartPart chartPart = drawingsPart.AddNewPart<ChartPart>();
+            chartPart.ChartSpace = new ChartSpace();
+            chartPart.ChartSpace.AppendChild(new EditingLanguage() { Val = "en-US" });
+            DocumentFormat.OpenXml.Drawing.Charts.Chart chart = chartPart.ChartSpace.AppendChild(new DocumentFormat.OpenXml.Drawing.Charts.Chart());
+            chart.AppendChild(new AutoTitleDeleted() { Val = true });
+
+            // Добавляем заголовок диаграммы
+            chart.Append(GenerateTitle(chartTitle));
+
+            // Легенда для диаграммы
+            switch (diagramLegendLocation)
+            {
+                case DiagramLegendLocation.Left:
+                    chart.Append(GenerateLegend(LegendPositionValues.Left));
+                    break;
+                case DiagramLegendLocation.Top:
+                    chart.Append(GenerateLegend(LegendPositionValues.Top));
+                    break;
+                case DiagramLegendLocation.Right:
+                    chart.Append(GenerateLegend(LegendPositionValues.Right));
+                    break;
+                case DiagramLegendLocation.Bottom:
+                    chart.Append(GenerateLegend(LegendPositionValues.Bottom));
+                    break;
+            }
+
+            // Создаем область построения и добавляем линейную диаграмму
+            PlotArea plotArea = chart.AppendChild(new PlotArea());
+            Layout layout = plotArea.AppendChild(new Layout());
+
+            // Линейная диаграмма вместо столбчатой
+            LineChart lineChart = plotArea.AppendChild(new LineChart(
+                new Grouping() { Val = new EnumValue<GroupingValues>(GroupingValues.Standard) },
+                new VaryColors() { Val = false }
+            ));
+
+            // Заголовок
+            Row row = new Row();
+            uint rowIndex = 2;
+            InsertCellInWorksheet(new(rowIndex, "A"), string.Empty, ExcelStyleInfoType.TextWithBorder);
+
+            for (int i = 0; i < header.Count; i++)
+            {
+                InsertCellInWorksheet(new(rowIndex, HelpingFunctions.ColumnIndexToLetter(i + 1)), header[i], ExcelStyleInfoType.TextWithBorder);
+            }
+
+            rowIndex++;
+
+            // Создание серий для линейной диаграммы
+            for (int i = 0; i < ranges.Count; i++)
+            {
+                LineChartSeries lineChartSeries = lineChart.AppendChild(new LineChartSeries(
+                    new Index() { Val = (uint)i },
+                    new Order() { Val = (uint)i },
+                    new SeriesText(new NumericValue() { Text = ranges[i].name })
+                ));
+
+                // Добавляем ось категорий
+                CategoryAxisData categoryAxisData = lineChartSeries.AppendChild(new CategoryAxisData());
+
+                // Категории
+                string formulaCat = $"Лист!$B$2:${HelpingFunctions.ColumnIndexToLetter(header.Count)}$2";
+                StringReference stringReference = categoryAxisData.AppendChild(new StringReference()
+                {
+                    Formula = new DocumentFormat.OpenXml.Drawing.Charts.Formula() { Text = formulaCat }
+                });
+
+                StringCache stringCache = stringReference.AppendChild(new StringCache());
+                stringCache.Append(new PointCount() { Val = (uint)header.Count });
+
+                for (int j = 0; j < header.Count; j++)
+                {
+                    stringCache.AppendChild(new NumericPoint() { Index = (uint)j }).Append(new NumericValue(header[j]));
+                }
+            }
+
+            var chartSeries = lineChart.Elements<LineChartSeries>().GetEnumerator();
+
+            for (int i = 0; i < ranges.Count; i++)
+            {
+                row = new Row();
+                InsertCellInWorksheet(new(rowIndex, "A"), ranges[i].name, ExcelStyleInfoType.TextWithBorder);
+                chartSeries.MoveNext();
+
+                string formulaVal = string.Format("Лист!$B${0}:${1}${0}", rowIndex, HelpingFunctions.ColumnIndexToLetter(header.Count));
+                DocumentFormat.OpenXml.Drawing.Charts.Values values = chartSeries.Current.AppendChild(new DocumentFormat.OpenXml.Drawing.Charts.Values());
+
+                NumberReference numberReference = values.AppendChild(new NumberReference()
+                {
+                    Formula = new DocumentFormat.OpenXml.Drawing.Charts.Formula() { Text = formulaVal }
+                });
+
+                NumberingCache numberingCache = numberReference.AppendChild(new NumberingCache());
+                numberingCache.Append(new PointCount() { Val = (uint)header.Count });
+
+                for (int j = 0; j < header.Count; j++)
+                {
+                    string value = string.Empty;
+                    if (ranges[i].data.ContainsKey(header[j]))
+                        value = ranges[i].data[header[j]].ToString();
+                    InsertCellInWorksheet(new(rowIndex, HelpingFunctions.ColumnIndexToLetter(j + 1)), value, ExcelStyleInfoType.TextWithBorder);
+                    numberingCache.AppendChild(new NumericPoint() { Index = (uint)j }).Append(new NumericValue(value));
+                }
+
+                rowIndex++;
+            }
+
+            // Настройка осей и меток
+            lineChart.AppendChild(new DataLabels(
+                new ShowLegendKey() { Val = false },
+                new ShowValue() { Val = false },
+                new ShowCategoryName() { Val = false },
+                new ShowSeriesName() { Val = false },
+                new ShowPercent() { Val = false },
+                new ShowBubbleSize() { Val = false }
+            ));
+
+            lineChart.Append(new AxisId() { Val = 48650112u });
+            lineChart.Append(new AxisId() { Val = 48672768u });
+
+            // Ось категорий
+            plotArea.AppendChild(
+                new CategoryAxis(
+                    new AxisId() { Val = 48650112u },
+                    new Scaling(new Orientation() { Val = new EnumValue<DocumentFormat.OpenXml.Drawing.Charts.OrientationValues>(DocumentFormat.OpenXml.Drawing.Charts.OrientationValues.MinMax) }),
+                    new Delete() { Val = false },
+                    new AxisPosition() { Val = new EnumValue<AxisPositionValues>(AxisPositionValues.Bottom) },
+                    new TickLabelPosition() { Val = new EnumValue<TickLabelPositionValues>(TickLabelPositionValues.NextTo) },
+                    new CrossingAxis() { Val = 48672768u },
+                    new Crosses() { Val = new EnumValue<CrossesValues>(CrossesValues.AutoZero) },
+                    new AutoLabeled() { Val = true },
+                    new LabelAlignment() { Val = new EnumValue<LabelAlignmentValues>(LabelAlignmentValues.Center) }
+                ));
+
+            // Ось значений
+            plotArea.AppendChild(
+                new ValueAxis(
+                    new AxisId() { Val = 48672768u },
+                    new Scaling(new Orientation() { Val = new EnumValue<DocumentFormat.OpenXml.Drawing.Charts.OrientationValues>(DocumentFormat.OpenXml.Drawing.Charts.OrientationValues.MinMax) }),
+                    new Delete() { Val = false },
+                    new AxisPosition() { Val = new EnumValue<AxisPositionValues>(AxisPositionValues.Left) },
+                    new MajorGridlines(),
+                    new DocumentFormat.OpenXml.Drawing.Charts.NumberingFormat() { FormatCode = "General", SourceLinked = true },
+                    new TickLabelPosition() { Val = new EnumValue<TickLabelPositionValues>(TickLabelPositionValues.NextTo) },
+                    new CrossingAxis() { Val = 48650112u },
+                    new Crosses() { Val = new EnumValue<CrossesValues>(CrossesValues.AutoZero) },
+                    new CrossBetween() { Val = new EnumValue<CrossBetweenValues>(CrossBetweenValues.Between) }
+                ));
+
+            chart.Append(
+                new PlotVisibleOnly() { Val = true },
+                new DisplayBlanksAs() { Val = new EnumValue<DisplayBlanksAsValues>(DisplayBlanksAsValues.Gap) },
+                new ShowDataLabelsOverMaximum() { Val = false }
+            );
+
+            chartPart.ChartSpace.Save();
+
+            // Размещение диаграммы на листе
+            TwoCellAnchor twoCellAnchor = drawingsPart.WorksheetDrawing.AppendChild(new TwoCellAnchor());
+
+            twoCellAnchor.Append(new DocumentFormat.OpenXml.Drawing.Spreadsheet.FromMarker(
+                new ColumnId("0"),
+                new ColumnOffset("0"),
+                new RowId((rowIndex + 2).ToString()),
+                new RowOffset("0")
+            ));
+
+            twoCellAnchor.Append(new DocumentFormat.OpenXml.Drawing.Spreadsheet.ToMarker(
+                new ColumnId($"{header.Count+2}"),
+                new ColumnOffset("0"),
+                new RowId((rowIndex + ranges.Count * 6).ToString()),
+                new RowOffset("0")
+            ));
+
+            // Добавляем GraphicFrame для линейной диаграммы
+            DocumentFormat.OpenXml.Drawing.Spreadsheet.GraphicFrame graphicFrame = twoCellAnchor.AppendChild(new DocumentFormat.OpenXml.Drawing.Spreadsheet.GraphicFrame());
+            graphicFrame.Macro = string.Empty;
+
+            graphicFrame.Append(new DocumentFormat.OpenXml.Drawing.Spreadsheet.NonVisualGraphicFrameProperties(
+                new DocumentFormat.OpenXml.Drawing.Spreadsheet.NonVisualDrawingProperties() { Id = 2u, Name = "Line Chart" },
+                new DocumentFormat.OpenXml.Drawing.Spreadsheet.NonVisualGraphicFrameDrawingProperties()
+            ));
+
+            graphicFrame.Append(new Transform(
+                new DocumentFormat.OpenXml.Drawing.Offset() { X = 0L, Y = 0L },
+                new DocumentFormat.OpenXml.Drawing.Extents() { Cx = 0L, Cy = 0L }
+            ));
+
+            graphicFrame.Append(new DocumentFormat.OpenXml.Drawing.Graphic(
+                new DocumentFormat.OpenXml.Drawing.GraphicData(
+                    new ChartReference() { Id = drawingsPart.GetIdOfPart(chartPart) }
+                )
+                { Uri = "http://schemas.openxmlformats.org/drawingml/2006/chart" }
+            ));
+
+            twoCellAnchor.Append(new ClientData());
+
+            drawingsPart.WorksheetDrawing.Save();
+            worksheetPart.Worksheet.Save();
         }
 
         internal void SaveExcel()
